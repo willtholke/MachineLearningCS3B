@@ -1,6 +1,6 @@
 """ This project has been updated since its last version such that
 the constructor for the NNData class includes new instance attributes
-and calls a new public method, split_set(). Split_set() sets up
+and calls a new public method, split_set(). Split_set() sets up 
 self._train_indices and self._test_indices as lists to be used
 as direct indices for our example data; each list contains unique
 data and is of a length determined by a series of calculations
@@ -20,11 +20,11 @@ object that failed to create in the first try block
 error, not just a specific error. PyCharm is highlighting that except
 block because it's not Pythonic to be unspecific and not include the
 specific error we expect.
-4) It looks like Professor Reed used the except block without an
-argument is because there are multiple errors that could occur. For
-instance, if the first try block fails, then line 133 in your program
-will fail and raise the following error: "UnboundLocalError: local
-variable 'our_data_0' referenced before assignment." However, if the
+4) It looks like Professor Reed used the except block without an 
+argument is because there are multiple errors that could occur. For 
+instance, if the first try block fails, then line 133 in your program 
+will fail and raise the following error: "UnboundLocalError: local 
+variable 'our_data_0' referenced before assignment." However, if the 
 first block passes and it's the one of the three assertions that fails,
 then we'll get an AssertionError. So, although not Pythonic, including
 the except block without an argument makes it so he doesn't have to
@@ -189,10 +189,5 @@ if __name__ == "__main__":
 
 """
 -- Sample Run #1 --
-[0. 1. 2. 3. 4. 5. 6. 7. 8. 9.]
-No errors were identified by the unit test.
-You should still double check that your code meets spec.
-You should also check that PyCharm does not identify any PEP-8 issues.
-
-Process finished with exit code 0
+Text
 """
