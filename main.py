@@ -1,10 +1,15 @@
 """ This project has been updated since its last version such that
-six new classes have been added
+two four new classes have been added, LayerType, MultiLinkNode,
+Side (subclass of MultiLinkNode), and Neurode. These classes boast
+features related to multiple inheritance, abstract base classes,
+function overloading, and binary encoding & arithmetic.
 
+The code has been written to meet spec and the unit test provided
+within the check_point_one_test() function returns no errors.
 
 Name: William Tholke
 Course: CS3B w/ Professor Eric Reed
-Date: 05/04/21
+Date: 05/05/21
 """
 from abc import ABC, abstractmethod
 from collections import deque
@@ -32,25 +37,38 @@ class MultiLinkNode(ABC):
         DOWNSTREAM = 1
 
     def __init__(self):
-        self._reporting_nodes = {  # binary encoding to keep track of neighboring nodes' information
+        self._reporting_nodes = {
             MultiLinkNode.Side.UPSTREAM: 0,
             MultiLinkNode.Side.DOWNSTREAM: 0
         }
-        self._reference_value = {  # reporting nodes value as binary encoding
+        self._reference_value = {
             MultiLinkNode.Side.UPSTREAM: 0,
             MultiLinkNode.Side.DOWNSTREAM: 0
         }
-        self._neighbors = {  # references to neighboring notes upstream and downstream
+        self._neighbors = {
             MultiLinkNode.Side.UPSTREAM: [],
             MultiLinkNode.Side.DOWNSTREAM: []
         }
 
     def __str__(self):
-        """ Print a representation of the node in context. """
-        print(f'{self._reporting_nodes}')
-        #  Overload this function to print out a representation of the node in context.
-        #  Print the ID of the node and the ID's of the neighboring nodes upstream and downstream.
-        #  The specific implementation is up to you.
+        """ Print ID of node and IDs of neighboring nodes upstream
+        & downstream.
+        """
+        upstream, downstream = [], []
+        if not self._neighbors[MultiLinkNode.Side.UPSTREAM]:
+            upstream = "Empty upstream node"
+        else:
+            for i in self._neighbors[MultiLinkNode.Side.UPSTREAM]:
+                upstream.append(id(i))
+        if not self._neighbors[MultiLinkNode.Side.DOWNSTREAM]:
+            downstream = "Empty downstream node"
+        else:
+            for x in self._neighbors[MultiLinkNode.Side.DOWNSTREAM]:
+                downstream.append(id(x))
+
+        print(f'Upstream Node ID: {upstream}.')
+        print(f'Current Node ID: {id(self)}')
+        print(f'Downstream Node ID: {downstream}.')
 
     @abstractmethod
     def _process_new_neighbor(self, node, side):
@@ -59,21 +77,29 @@ class MultiLinkNode(ABC):
 
     def reset_neighbors(self, nodes: list, side: Enum):
         """ Reset or set the nodes that link into a node. """
-        # nodes contain object references of nodes on upstream side
-        # side is upstream or downstream
-        self._neighbors[MultiLinkNode.Side.UPSTREAM] = copy(nodes)
-        self._process_new_neighbor(nodes, side)
-        # self._reference_value
+        if side == MultiLinkNode.Side.UPSTREAM:
+            self._neighbors[MultiLinkNode.Side.UPSTREAM] = copy(nodes)
+            for i in self._neighbors[MultiLinkNode.Side.UPSTREAM]:
+                self._process_new_neighbor(i, side)
+            self._reference_value[MultiLinkNode.Side.UPSTREAM] = \
+                2**len(nodes) - 1
+
+        elif side == MultiLinkNode.Side.DOWNSTREAM:
+            self._neighbors[MultiLinkNode.Side.DOWNSTREAM] = copy(nodes)
+            for i in self._neighbors[MultiLinkNode.Side.DOWNSTREAM]:
+                self._process_new_neighbor(i, side)
+            self._reference_value[MultiLinkNode.Side.DOWNSTREAM] = \
+                2**len(nodes) - 1
 
 
 class Neurode(MultiLinkNode):
 
-    def __init__(self, node_type, learning_rate=0.5):
-        self._value = 0  # current value of the neurode
-        self._node_type = node_type  # one of the LayerType elements & represents neurode role
-        self._learning_rate = learning_rate  # learning rate used in back propagation
-        self._weights = {}  # dictionary representing the weights given to the upstream connections
-        super().__init__()  # return the object of the parent class so we can use its methods
+    def __init__(self, node_type, learning_rate=0.05):
+        self._value = 0
+        self._node_type = node_type
+        self._learning_rate = learning_rate
+        self._weights = {}
+        super().__init__()
 
     @property
     def value(self):
@@ -97,19 +123,28 @@ class Neurode(MultiLinkNode):
 
     def _process_new_neighbor(self, node, side):
         """ Execute when any new neighbors are added. """
-        pass
+        if side == MultiLinkNode.Side.UPSTREAM:
+            self._weights[node] = random.uniform(0, 1)
+        if side == MultiLinkNode.Side.DOWNSTREAM:
+            pass
 
     def _check_in(self, node, side):
         """ Execute when node learns that neighboring node has
         available information.
         """
-        pass  # this method should implement binary encoding
+        index = self._neighbors[side].index(node)
+        self._reporting_nodes[side] = 2 ** index | self._reporting_nodes[side]
+        if self._reference_value[side] == self._reporting_nodes[side]:
+            self._reporting_nodes[side] = 0
+            return True
+        else:
+            return False
 
     def get_weight(self, node):
         """ Get upstream node's associated weight in self._weights
         dictionary.
         """
-        pass
+        return self._weights[node]
 
 
 class NNData:
@@ -314,7 +349,6 @@ def check_point_one_test():
               "checked in")
 
     # Check that learning rates were set correctly
-
     if not inputs[0].learning_rate == .05:
         print("Fail - default learning rate was not set")
     if not outputs[0].learning_rate == .01:
@@ -335,5 +369,5 @@ if __name__ == "__main__":
 
 """
 -- Sample Run #1 --
-
+N/A
 """
