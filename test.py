@@ -1,15 +1,12 @@
-class Side:
-    UPSTREAM = 0
-    DOWNSTREAM = 1
+import numpy as np
+
+value = 0
+print(1 / (1 + np.exp(value)))
 
 
-neighbors = {
-    Side.UPSTREAM: [],
-    Side.DOWNSTREAM: []
-}
+def value():
+    return 1
 
-nodes = [1, 2, 3, 4]
-neighbors[Side.UPSTREAM] = nodes
 
-print(neighbors)
-
+thing = value() + 1
+print(thing)

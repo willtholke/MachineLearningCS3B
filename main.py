@@ -1,15 +1,11 @@
-""" This project has been updated since its last version such that
-two four new classes have been added, LayerType, MultiLinkNode,
-Side (subclass of MultiLinkNode), and Neurode. These classes boast
-features related to multiple inheritance, abstract base classes,
-function overloading, and binary encoding & arithmetic.
-
-The code has been written to meet spec and the unit test provided
-within the check_point_one_test() function returns no errors.
+""" This project has been updated since its last instance such that
+ the new FFNeurode (Feed Forward Neurode) class was created, which
+ is inherited from Neurode. The new FFNeurode class includes four
+ new methods and uses super() to call __init__() in its constructor.
 
 Name: William Tholke
 Course: CS3B w/ Professor Eric Reed
-Date: 05/05/21
+Date: 05/11/21
 """
 from abc import ABC, abstractmethod
 from collections import deque
@@ -95,11 +91,11 @@ class MultiLinkNode(ABC):
 class Neurode(MultiLinkNode):
 
     def __init__(self, node_type, learning_rate=0.05):
+        super().__init__()
         self._value = 0
         self._node_type = node_type
         self._learning_rate = learning_rate
         self._weights = {}
-        super().__init__()
 
     @property
     def value(self):
@@ -117,24 +113,23 @@ class Neurode(MultiLinkNode):
         return self._learning_rate
 
     @learning_rate.setter
-    def learning_rate(self, learning_rate):
+    def learning_rate(self, learning_rate: float):
         """ Set self._learning_rate. """
         self._learning_rate = learning_rate
 
     def _process_new_neighbor(self, node, side):
         """ Execute when any new neighbors are added. """
-        if side == MultiLinkNode.Side.UPSTREAM:
+        if side is MultiLinkNode.Side.UPSTREAM:
             self._weights[node] = random.uniform(0, 1)
-        if side == MultiLinkNode.Side.DOWNSTREAM:
-            pass
 
-    def _check_in(self, node, side):
+    def _check_in(self, node, side: MultiLinkNode.Side):
         """ Execute when node learns that neighboring node has
         available information.
         """
-        index = self._neighbors[side].index(node)
-        self._reporting_nodes[side] = 2 ** index | self._reporting_nodes[side]
-        if self._reference_value[side] == self._reporting_nodes[side]:
+        node_number = self._neighbors[side].index(node)
+        self._reporting_nodes[side] = \
+            self._reporting_nodes[side] | 1 << node_number
+        if self._reporting_nodes[side] == self._reference_value[side]:
             self._reporting_nodes[side] = 0
             return True
         else:
@@ -145,6 +140,47 @@ class Neurode(MultiLinkNode):
         dictionary.
         """
         return self._weights[node]
+
+
+class FFNeurode(Neurode):
+    def __init__(self, my_type):
+        super().__init__(my_type)
+
+    @staticmethod
+    def _sigmoid(value):
+        """ Keep input values bound to a known range & return the
+        result of the sigmoid function at value.
+        """
+        return 1 / (1 + np.exp(-value))
+
+    def _calculate_value(self):
+        """ Calculate weighted sum of upstream nodes' values, pass
+        the result through FFNeurode._sigmoid, and store the value.
+        """
+        products = []
+        for i in self._neighbors[MultiLinkNode.Side.UPSTREAM]:
+            products.append(i._value * self._weights[i])
+        self._value = self._sigmoid(sum(products))
+
+    def _fire_downstream(self):
+        """ Call self._data_ready_upstream on every downstream
+        neighbor of this node. """
+        for i in self._neighbors[MultiLinkNode.Side.DOWNSTREAM]:
+            i.data_ready_upstream(self)
+
+    def data_ready_upstream(self, node):
+        """ Call self._check_in() to check data status of node
+        and proceed accordingly.
+        """
+        if self._check_in(node, MultiLinkNode.Side.UPSTREAM):
+            self._calculate_value()
+            self._fire_downstream()
+
+    def set_input(self, input_value):
+        """ Set value of input layer neurode. """
+        for i in self._neighbors[MultiLinkNode.Side.DOWNSTREAM]:
+            i.data_ready_upstream(self)
+        self._value = input_value
 
 
 class NNData:
@@ -291,83 +327,49 @@ def load_XOR():
     return data
 
 
-def check_point_one_test():
+def check_point_two_test():
+    inodes = []
+    hnodes = []
+    onodes = []
+    for k in range(2):
+        inodes.append(FFNeurode(LayerType.INPUT))
+    for k in range(2):
+        hnodes.append(FFNeurode(LayerType.HIDDEN))
+    onodes.append(FFNeurode(LayerType.OUTPUT))
+    for node in inodes:
+        node.reset_neighbors(hnodes, MultiLinkNode.Side.DOWNSTREAM)
+    for node in hnodes:
+        node.reset_neighbors(inodes, MultiLinkNode.Side.UPSTREAM)
+        node.reset_neighbors(onodes, MultiLinkNode.Side.DOWNSTREAM)
+    for node in onodes:
+        node.reset_neighbors(hnodes, MultiLinkNode.Side.UPSTREAM)
+    try:
+        inodes[1].set_input(1)
+        assert onodes[0].value == 0
+    except:
+        print("Error: Neurodes may be firing before receiving all input")
+    inodes[0].set_input(0)
 
-    # Mock up a network with three inputs and three outputs
+    # Since input node 0 has value of 0 and input node 1 has value of
+    # one, the value of the hidden layers should be the sigmoid of the
+    # weight out of input node 1.
 
-    inputs = [Neurode(LayerType.INPUT) for _ in range(3)]
-    outputs = [Neurode(LayerType.OUTPUT, .01) for _ in range(3)]
-    if not inputs[0]._reference_value[MultiLinkNode.Side.DOWNSTREAM] == 0:
-        print("Fail - Initial reference value is not zero")
-    for node in inputs:
-        node.reset_neighbors(outputs, MultiLinkNode.Side.DOWNSTREAM)
-    for node in outputs:
-        node.reset_neighbors(inputs, MultiLinkNode.Side.UPSTREAM)
-    if not inputs[0]._reference_value[MultiLinkNode.Side.DOWNSTREAM] == 7:
-        print("Fail - Final reference value is not correct")
-    if not inputs[0]._reference_value[MultiLinkNode.Side.UPSTREAM] == 0:
-        print("Fail - Final reference value is not correct")
-
-    # Report data ready from each input and make sure _check_in
-    # only reports True when all nodes have reported
-
-    if not outputs[0]._reporting_nodes[MultiLinkNode.Side.UPSTREAM] == 0:
-        print("Fail - Initial reporting value is not zero")
-    if outputs[0]._check_in(inputs[0], MultiLinkNode.Side.UPSTREAM):
-        print("Fail - _check_in returned True but not all nodes were"
-              "checked in")
-    if not outputs[0]._reporting_nodes[MultiLinkNode.Side.UPSTREAM] == 1:
-        print("Fail - reporting value is not correct")
-    if outputs[0]._check_in(inputs[2], MultiLinkNode.Side.UPSTREAM):
-        print("Fail - _check_in returned True but not all nodes were"
-              "checked in")
-    if not outputs[0]._reporting_nodes[MultiLinkNode.Side.UPSTREAM] == 5:
-        print("Fail - reporting value is not correct")
-    if outputs[0]._check_in(inputs[2], MultiLinkNode.Side.UPSTREAM):
-        print("Fail - _check_in returned True but not all nodes were"
-              "checked in (double fire)")
-    if not outputs[0]._reporting_nodes[MultiLinkNode.Side.UPSTREAM] == 5:
-        print("Fail - reporting value is not correct")
-    if not outputs[0]._check_in(inputs[1], MultiLinkNode.Side.UPSTREAM):
-        print("Fail - _check_in returned False after all nodes were"
-              "checked in")
-
-    # Report data ready from each output and make sure _check_in
-    # only reports True when all nodes have reported
-
-    if inputs[1]._check_in(outputs[0], MultiLinkNode.Side.DOWNSTREAM):
-        print("Fail - _check_in returned True but not all nodes were"
-              "checked in")
-    if inputs[1]._check_in(outputs[2], MultiLinkNode.Side.DOWNSTREAM):
-        print("Fail - _check_in returned True but not all nodes were"
-              "checked in")
-    if inputs[1]._check_in(outputs[0], MultiLinkNode.Side.DOWNSTREAM):
-        print("Fail - _check_in returned True but not all nodes were"
-              "checked in (double fire)")
-    if not inputs[1]._check_in(outputs[1], MultiLinkNode.Side.DOWNSTREAM):
-        print("Fail - _check_in returned False after all nodes were"
-              "checked in")
-
-    # Check that learning rates were set correctly
-    if not inputs[0].learning_rate == .05:
-        print("Fail - default learning rate was not set")
-    if not outputs[0].learning_rate == .01:
-        print("Fail - specified learning rate was not set")
-
-    # Check that weights appear random
-
-    weight_list = list()
-    for node in outputs:
-        for t_node in inputs:
-            if node.get_weight(t_node) in weight_list:
-                print("Fail - weights do not appear to be set up properly")
-            weight_list.append(node.get_weight(t_node))
+    value_0 = (1 / (1 + np.exp(-hnodes[0]._weights[inodes[1]])))
+    value_1 = (1 / (1 + np.exp(-hnodes[1]._weights[inodes[1]])))
+    inter = onodes[0]._weights[hnodes[0]] * value_0 + \
+            onodes[0]._weights[hnodes[1]] * value_1
+    final = (1 / (1 + np.exp(-inter)))
+    try:
+        print(final, onodes[0].value)
+        assert final == onodes[0].value
+        assert 0 < final < 1
+    except:
+        print("Error: Calculation of neurode value may be incorrect")
 
 
 if __name__ == "__main__":
-    check_point_one_test()
+    check_point_two_test()
 
 """
--- Sample Run #1 --
-N/A
+-- Sample Run #1 --haha
 """
