@@ -1,15 +1,10 @@
 """ This project has been updated since its last instance such that
-two new classes, 'BPNeurode' and 'FFBPNeurode,' allow full capability
-of training datasets using the neural network. The abstract base
-class 'MultiLinkNode' has a child class 'Neurode,' which is the
-parent class of the 'FFNeurode' (Feed Forward Neurode) and 'BPNeurode'
-(Backpropagation Neurode) classes. The 'FFBPNeurode' (Feed Forward
-Back Propagation Neurode) is multiply inherited combination of
-'FFNeurode' and 'BPNeurode' and has no new methods or attributes.
+there is a new DoublyLinkedList class and accompanying Node class,
+which allow for doubly linked list functionality.
 
 Name: William Tholke
 Course: CS3B w/ Professor Eric Reed
-Date: 05/18/21
+Date: 05/25/21
 """
 from abc import ABC, abstractmethod
 from collections import deque
@@ -258,6 +253,145 @@ class FFBPNeurode(BPNeurode, FFNeurode):
     pass
 
 
+class Node:
+    def __init__(self, data=None):
+        self.data = data
+        self.next = None
+        self.back = None
+
+
+class DoublyLinkedList:
+    def __init__(self):
+        self._head = None
+        self._curr = None
+        self._tail = None
+
+    class EmptyListError(Exception):
+        pass
+
+    def add_to_head(self, data):
+        """ Add data to the first node in the list. """
+        new_node = Node(data)
+        new_node.next = self._head
+        self._head = new_node
+        self.reset_to_head()
+
+    def remove_from_head(self):
+        """ Return data value if there is a node at the head or
+        return None otherwise.
+        """
+        if self._head is None:
+            return None
+        ret_val = self._head.data
+        self._head = self._head.next
+        self.reset_to_head()
+        return ret_val
+
+    def reset_to_head(self):
+        """ Reset current node to head. """
+        self._curr = self._head
+        if self._curr is None:
+            raise DoublyLinkedList.EmptyListError
+        else:
+            return self._curr.data
+
+    def reset_to_tail(self):
+        """ Reset current node to tail. """
+        self._curr = self._tail
+        if self._curr is None:
+            raise DoublyLinkedList.EmptyListError
+        else:
+            return self._curr.data
+
+    def move_forward(self):
+        """ Return the data from new node if it exists. """
+        if self._curr is None:
+            raise DoublyLinkedList.EmptyListError
+        self._curr = self._curr.next
+        if self._curr is None:
+            self.reset_to_head()
+            raise IndexError
+        else:
+            return self._curr.data
+
+    def move_back(self):
+        """ Return the data from new node if it exists. """
+        if self._curr is None:
+            raise DoublyLinkedList.EmptyListError
+        self._curr = self._curr.next
+        if self._curr is None:
+            self.reset_to_tail()
+            raise IndexError
+        self._curr = self._curr.next
+        return self._curr.data
+
+    def add_after_curr(self, data):
+        """ Alter the middle of a list by adding after a node. """
+        if self._curr is None:
+            self.add_to_head(data)
+            raise DoublyLinkedList.EmptyListError
+        new_node = Node(data)
+        new_node.next = self._curr.next
+        self.reset_to_tail()
+        self._curr.next = new_node
+
+    def remove_after_cur(self):
+        """ Alter the middle of a list by removing after a node. """
+        if self._curr is None or self._curr.next is None:
+            return DoublyLinkedList.EmptyListError
+        if self._curr == self._tail:
+            raise IndexError
+        ret_val = self._curr.next.data
+        self._curr.next = self._curr.next.next
+        self.reset_to_tail()
+        return ret_val
+
+
+    def get_current_data(self):
+        if self._curr is None:
+            raise DoublyLinkedList.EmptyListError
+        else:
+            return self._curr.data
+
+    def find(self, value):
+        """ Return data at node if value parameter exists. """
+        curr_pos = self._head
+        while curr_pos is not None:
+            if curr_pos.data == value:
+                return curr_pos.data
+            curr_pos = curr_pos.next
+        return None
+
+    def delete(self, value):
+        """ Delete data at node if the current node's data is the
+        same as the value parameter.
+        """
+        self.reset_to_head()
+        if self._curr is None:
+            return None
+        if self._curr.data == value:
+            return self.remove_from_head()
+        while self._curr.next is not None:
+            if self._curr.next.data == value:
+                ret_val = self.remove_after_cur()
+                self.reset_to_head()
+                return ret_val
+            self._curr = self._curr.next
+        self.reset_to_head()
+        return None
+
+    def __iter__(self):
+        self._curr_iter = self._head
+        return self
+
+    def __next__(self):
+        if self._curr_iter is None:
+            raise StopIteration
+        ret_val = self._curr_iter.data
+        self._curr_iter = self._curr_iter.next
+        return ret_val
+
+
 class NNData:
 
     def __init__(self, features=None, labels=None, train_factor=0.9):
@@ -402,163 +536,52 @@ def load_XOR():
     return data
 
 
-def main():
+def dll_test():
+    my_list = DoublyLinkedList()
     try:
-        test_neurode = BPNeurode(LayerType.HIDDEN)
-    except:
-        print("Error - Cannot instaniate a BPNeurode object")
-        return
-    print("Testing Sigmoid Derivative")
-    try:
-        assert BPNeurode._sigmoid_derivative(0) == 0
-        if test_neurode._sigmoid_derivative(.4) == .24:
-            print("Pass")
-        else:
-            print("_sigmoid_derivative is not returning the correct "
-                  "result")
-    except:
-        print("Error - Is _sigmoid_derivative named correctly, created "
-              "in BPNeurode and decorated as a static method?")
-    print("Testing Instance objects")
-    try:
-        test_neurode.learning_rate
-        test_neurode.delta
+        my_list.get_current_data()
+    except DoublyLinkedList.EmptyListError:
         print("Pass")
-    except:
-        print("Error - Are all instance objects created in __init__()?")
-
-    inodes = []
-    hnodes = []
-    onodes = []
-    for k in range(2):
-        inodes.append(FFBPNeurode(LayerType.INPUT))
-        hnodes.append(FFBPNeurode(LayerType.HIDDEN))
-        onodes.append(FFBPNeurode(LayerType.OUTPUT))
-    for node in inodes:
-        node.reset_neighbors(hnodes, MultiLinkNode.Side.DOWNSTREAM)
-    for node in hnodes:
-        node.reset_neighbors(inodes, MultiLinkNode.Side.UPSTREAM)
-        node.reset_neighbors(onodes, MultiLinkNode.Side.DOWNSTREAM)
-    for node in onodes:
-        node.reset_neighbors(hnodes, MultiLinkNode.Side.UPSTREAM)
-    print("testing learning rate values")
-    for node in hnodes:
-        print(f"my learning rate is {node.learning_rate}")
-    print("Testing check-in")
-    try:
-        hnodes[0]._reporting_nodes[MultiLinkNode.Side.DOWNSTREAM] = 1
-        if hnodes[0]._check_in(onodes[1], MultiLinkNode.Side.DOWNSTREAM) and \
-                not hnodes[1]._check_in(onodes[1],
-                                        MultiLinkNode.Side.DOWNSTREAM):
-            print("Pass")
-        else:
-            print("Error - _check_in is not responding correctly")
-    except:
-        print("Error - _check_in is raising an error.  Is it named correctly? "
-              "Check your syntax")
-    print("Testing calculate_delta on output nodes")
-    try:
-        onodes[0]._value = .2
-        onodes[0]._calculate_delta(.5)
-        if .0479 < onodes[0].delta < .0481:
-            print("Pass")
-        else:
-            print("Error - calculate delta is not returning the correct value."
-                  "Check the math.")
-            print("        Hint: do you have a separate process for hidden "
-                  "nodes vs output nodes?")
-    except:
-        print("Error - calculate_delta is raising an error.  Is it named "
-              "correctly?  Check your syntax")
-    print("Testing calculate_delta on hidden nodes")
-    try:
-        onodes[0]._delta = .2
-        onodes[1]._delta = .1
-        onodes[0]._weights[hnodes[0]] = .4
-        onodes[1]._weights[hnodes[0]] = .6
-        hnodes[0]._value = .3
-        hnodes[0]._calculate_delta()
-        if .02939 < hnodes[0].delta < .02941:
-            print("Pass")
-        else:
-            print("Error - calculate delta is not returning the correct value.  "
-                  "Check the math.")
-            print("        Hint: do you have a separate process for hidden "
-                  "nodes vs output nodes?")
-    except:
-        print("Error - calculate_delta is raising an error.  Is it named correctly?  Check your syntax")
-    try:
-        print("Testing update_weights")
-        hnodes[0]._update_weights()
-        if onodes[0].learning_rate == .05:
-            if .4 + .06 * onodes[0].learning_rate - .001 < \
-                    onodes[0]._weights[hnodes[0]] < \
-                    .4 + .06 * onodes[0].learning_rate + .001:
-                print("Pass")
-            else:
-                print("Error - weights not updated correctly.  "
-                      "If all other methods passed, check update_weights")
-        else:
-            print("Error - Learning rate should be .05, please verify")
-    except:
-        print("Error - update_weights is raising an error.  Is it named "
-              "correctly?  Check your syntax")
-    print("All that looks good.  Trying to train a trivial dataset "
-          "on our network")
-    inodes = []
-    hnodes = []
-    onodes = []
-    for k in range(2):
-        inodes.append(FFBPNeurode(LayerType.INPUT))
-        hnodes.append(FFBPNeurode(LayerType.HIDDEN))
-        onodes.append(FFBPNeurode(LayerType.OUTPUT))
-    for node in inodes:
-        node.reset_neighbors(hnodes, MultiLinkNode.Side.DOWNSTREAM)
-    for node in hnodes:
-        node.reset_neighbors(inodes, MultiLinkNode.Side.UPSTREAM)
-        node.reset_neighbors(onodes, MultiLinkNode.Side.DOWNSTREAM)
-    for node in onodes:
-        node.reset_neighbors(hnodes, MultiLinkNode.Side.UPSTREAM)
-    inodes[0].set_input(1)
-    inodes[1].set_input(0)
-    value1 = onodes[0].value
-    value2 = onodes[1].value
-    onodes[0].set_expected(0)
-    onodes[1].set_expected(1)
-    inodes[0].set_input(1)
-    inodes[1].set_input(0)
-    value1a = onodes[0].value
-    value2a = onodes[1].value
-    if (value1 - value1a > 0) and (value2a - value2 > 0):
-        print("Pass - Learning was done!")
     else:
-        print("Fail - the network did not make progress.")
-        print("If you hit a wall, be sure to seek help in the discussion "
-              "forum, from the instructor and from the tutors")
+        print("Fail")
+    for a in range(3):
+        my_list.add_to_head(a)
+    if my_list.get_current_data() != 2:
+        print("Error")
+    my_list.move_forward()
+    if my_list.get_current_data() != 1:
+        print("Fail")
+    my_list.move_forward()
+    try:
+        my_list.move_forward()
+    except IndexError:
+        print("Pass")
+    else:
+        print("Fail")
+    if my_list.get_current_data() != 0:
+        print("Fail")
+    my_list.move_back()
+    my_list.remove_after_cur()
+    if my_list.get_current_data() != 1:
+        print("Fail")
+    my_list.move_back()
+    if my_list.get_current_data() != 2:
+        print("Fail")
+    try:
+        my_list.move_back()
+    except IndexError:
+        print("Pass")
+    else:
+        print("Fail")
+    my_list.move_forward()
+    if my_list.get_current_data() != 1:
+        print("Fail")
 
 
 if __name__ == "__main__":
-    main()
+    dll_test()
 
 """
 -- Sample Run #1 --
-Testing Sigmoid Derivative
-Pass
-Testing Instance objects
-Pass
-testing learning rate values
-my learning rate is 0.05
-my learning rate is 0.05
-Testing check-in
-Pass
-Testing calculate_delta on output nodes
-Pass
-Testing calculate_delta on hidden nodes
-Pass
-Testing update_weights
-Pass
-All that looks good.  Trying to train a trivial dataset on our network
-Pass - Learning was done!
 
-Process finished with exit code 0
 """
