@@ -1,9 +1,3 @@
-""" This project has been updated since its last instance such that...
-
-Name: William Tholke
-Course: CS3B w/ Professor Eric Reed
-Date: 06/18/21
-"""
 from abc import ABC, abstractmethod
 from collections import deque
 from copy import deepcopy, copy
